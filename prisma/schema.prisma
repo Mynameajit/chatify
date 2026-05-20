@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -7,29 +8,29 @@ datasource db {
 }
 
 model User {
-  id             String    @id @default(uuid())
-  email          String    @unique
-  name           String
-  password       String
-  profilePhoto   String?
-  bio            String?
-  lastSeen       DateTime  @default(now())
-  isOnline       Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  password     String
+  profilePhoto String?
+  bio          String?
+  lastSeen     DateTime @default(now())
+  isOnline     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  sessions           Session[]
-  sentRequests       FriendRequest[] @relation("SentRequests")
-  receivedRequests   FriendRequest[] @relation("ReceivedRequests")
-  friendshipsUser1   Friendship[]    @relation("FriendshipsUser1")
-  friendshipsUser2   Friendship[]    @relation("FriendshipsUser2")
-  memberships        ConversationMember[]
-  messages           Message[]
-  seenMessages       MessageSeen[]
-  reactions          MessageReaction[]
-  callerCalls        CallHistory[]   @relation("CallerCalls")
-  receiverCalls      CallHistory[]   @relation("ReceiverCalls")
-  notifications      Notification[]
+  sessions         Session[]
+  sentRequests     FriendRequest[]      @relation("SentRequests")
+  receivedRequests FriendRequest[]      @relation("ReceivedRequests")
+  friendshipsUser1 Friendship[]         @relation("FriendshipsUser1")
+  friendshipsUser2 Friendship[]         @relation("FriendshipsUser2")
+  memberships      ConversationMember[]
+  messages         Message[]
+  seenMessages     MessageSeen[]
+  reactions        MessageReaction[]
+  callerCalls      CallHistory[]        @relation("CallerCalls")
+  receiverCalls    CallHistory[]        @relation("ReceiverCalls")
+  notifications    Notification[]
 }
 
 model Session {
@@ -41,7 +42,7 @@ model Session {
   updatedAt    DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
 }
 
@@ -84,8 +85,8 @@ model Friendship {
 model Conversation {
   id        String   @id @default(uuid())
   isGroup   Boolean  @default(false)
-  name      String?  // For group chats
-  avatar    String?  // For group chats
+  name      String? // For group chats
+  avatar    String? // For group chats
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -153,9 +154,9 @@ model Attachment {
   id        String   @id @default(uuid())
   messageId String
   url       String
-  publicId  String?  // For Cloudinary
-  type      String   // MIME type
-  size      Int?     // bytes
+  publicId  String? // For Cloudinary
+  type      String // MIME type
+  size      Int? // bytes
   name      String?
   createdAt DateTime @default(now())
 
@@ -206,7 +207,7 @@ model CallHistory {
   status     CallStatus
   startedAt  DateTime   @default(now())
   endedAt    DateTime?
-  duration   Int?       // in seconds
+  duration   Int? // in seconds
   isVideo    Boolean    @default(false)
 
   caller   User @relation("CallerCalls", fields: [callerId], references: [id], onDelete: Cascade)
@@ -229,7 +230,7 @@ model Notification {
   type      NotificationType
   content   String
   isRead    Boolean          @default(false)
-  entityId  String?          // e.g. friend request id, message id
+  entityId  String? // e.g. friend request id, message id
   createdAt DateTime         @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
