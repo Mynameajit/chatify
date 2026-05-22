@@ -19,8 +19,11 @@ app.prepare().then(async () => {
 
   const io = new Server(httpServer, {
     cors: {
-      origin: '*', // Customize in production
+      origin: (origin, callback) => {
+        callback(null, true);
+      },
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 
