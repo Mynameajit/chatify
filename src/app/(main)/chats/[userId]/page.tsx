@@ -16,6 +16,7 @@ export default function ChatUserPage() {
 
   const [profileUser, setProfileUser] = useState<any | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const isGroupChat = userId?.startsWith("chat-") || false;
 
@@ -70,6 +71,7 @@ export default function ChatUserPage() {
 
   const handleSendRequest = async () => {
     try {
+      setIsProcessing(true);
       const { default: api } = await import("@/lib/api");
       const res = await api.post("/friends/request", { receiverId: userId });
       if (res.data.success) {
@@ -83,12 +85,15 @@ export default function ChatUserPage() {
     } catch (err: any) {
       const { toast } = await import("sonner");
       toast.error(err.response?.data?.message || "Failed to send request");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleAcceptRequest = async () => {
     if (!profileUser?.requestId) return;
     try {
+      setIsProcessing(true);
       const { default: api } = await import("@/lib/api");
       const res = await api.post("/friends/accept", { requestId: profileUser.requestId });
       if (res.data.success) {
@@ -102,12 +107,15 @@ export default function ChatUserPage() {
     } catch (err: any) {
       const { toast } = await import("sonner");
       toast.error(err.response?.data?.message || "Failed to accept request");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleCancelRequest = async () => {
     if (!profileUser?.requestId) return;
     try {
+      setIsProcessing(true);
       const { default: api } = await import("@/lib/api");
       const res = await api.post("/friends/cancel", { requestId: profileUser.requestId });
       if (res.data.success) {
@@ -120,6 +128,8 @@ export default function ChatUserPage() {
     } catch (err: any) {
       const { toast } = await import("sonner");
       toast.error(err.response?.data?.message || "Failed to cancel request");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -192,23 +202,26 @@ export default function ChatUserPage() {
             {isReceived ? (
               <Button
                 onClick={handleAcceptRequest}
+                disabled={isProcessing}
                 className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20 font-semibold h-11 transition-all hover:scale-[1.02]"
               >
-                <UserCheck className="w-4 h-4 mr-2" /> Accept Friend Request
+                {isProcessing ? "Wait..." : <><UserCheck className="w-4 h-4 mr-2" /> Accept Friend Request</>}
               </Button>
             ) : isSent ? (
               <Button
                 onClick={handleCancelRequest}
+                disabled={isProcessing}
                 className="w-full rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-600/20 font-semibold h-11 transition-all hover:scale-[1.02]"
               >
-                Cancel Friend Request
+                {isProcessing ? "Wait..." : "Cancel Friend Request"}
               </Button>
             ) : (
               <Button
                 onClick={handleSendRequest}
+                disabled={isProcessing}
                 className="w-full rounded-xl bg-primary hover:bg-primary/95 text-white shadow-lg shadow-primary/20 font-semibold h-11 transition-all hover:scale-[1.02]"
               >
-                Send Friend Request
+                {isProcessing ? "Wait..." : "Send Friend Request"}
               </Button>
             )}
 

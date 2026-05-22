@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, MoreVertical, Phone, Video, Info, Menu } from "lucide-react";
+import { ArrowLeft, Phone, Video, Menu } from "lucide-react";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useUIStore } from "@/store/useUIStore";
@@ -74,7 +74,7 @@ export function ChatHeader({ chatId }: { chatId: string }) {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hidden sm:inline-flex"
+          className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
           onClick={() => handleStartCall(false)}
         >
           <Phone className="h-5 w-5" />
@@ -82,7 +82,7 @@ export function ChatHeader({ chatId }: { chatId: string }) {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hidden sm:inline-flex"
+          className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
           onClick={() => handleStartCall(true)}
         >
           <Video className="h-5 w-5" />

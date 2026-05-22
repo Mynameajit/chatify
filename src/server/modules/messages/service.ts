@@ -57,6 +57,27 @@ export class MessageService {
     });
 
     if (!isMember) throw new Error('Not authorized');
+
+    const members = await prisma.conversationMember.findMany({
+      where: { conversationId: data.conversationId },
+      select: { userId: true },
+    });
+
+    const otherMembers = members.filter(m => m.userId !== userId).map(m => m.userId);
+    if (otherMembers.length > 0) {
+      const blockExists = await prisma.blockedUser.findFirst({
+        where: {
+          OR: [
+            { blockerId: userId, blockedId: { in: otherMembers } },
+            { blockerId: { in: otherMembers }, blockedId: userId }
+          ]
+        }
+      });
+      if (blockExists) {
+        throw new Error('Message blocked: You have blocked this user or they have blocked you');
+      }
+    }
+
     if (!data.content && (!data.attachments || data.attachments.length === 0)) {
       throw new Error('Message must have content or attachments');
     }
@@ -92,10 +113,6 @@ export class MessageService {
 
     // Broadcast message over sockets in real-time
     try {
-      const members = await prisma.conversationMember.findMany({
-        where: { conversationId: data.conversationId },
-        select: { userId: true },
-      });
 
       const { getIO } = await import('@/server/socket/index');
       const io = getIO();

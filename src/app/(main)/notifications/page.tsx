@@ -5,6 +5,7 @@ import { ArrowLeft, Check, X, Bell, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useUIStore } from "@/store/useUIStore";
 import { useSocket } from "@/providers/SocketProvider";
 
 export default function NotificationsPage() {
@@ -12,6 +13,8 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { socket } = useSocket();
+  const { setUnreadNotifsCount } = useUIStore();
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const fetchNotifications = async () => {
     try {
@@ -35,12 +38,13 @@ export default function NotificationsPage() {
       try {
         const { default: api } = await import("@/lib/api");
         await api.post("/friends/notifications/read");
+        setUnreadNotifsCount(0);
       } catch (err) {
         console.error("Failed to mark notifications as read:", err);
       }
     };
     markRead();
-  }, []);
+  }, [setUnreadNotifsCount]);
 
   useEffect(() => {
     if (!socket) return;
@@ -74,33 +78,39 @@ export default function NotificationsPage() {
 
   const handleAccept = async (requestId: string) => {
     try {
+      setProcessingId(requestId);
       const { default: api } = await import("@/lib/api");
       const res = await api.post("/friends/accept", { requestId });
       if (res.data.success) {
         const { toast } = await import("sonner");
         toast.success("Friend request accepted!");
-        fetchNotifications();
+        await fetchNotifications();
         const { useChatStore } = await import("@/store/useChatStore");
-        useChatStore.getState().fetchChats();
+        await useChatStore.getState().fetchChats();
       }
     } catch (err: any) {
       const { toast } = await import("sonner");
       toast.error(err.response?.data?.message || "Failed to accept request");
+    } finally {
+      setProcessingId(null);
     }
   };
 
   const handleReject = async (requestId: string) => {
     try {
+      setProcessingId(requestId);
       const { default: api } = await import("@/lib/api");
       const res = await api.post("/friends/reject", { requestId });
       if (res.data.success) {
         const { toast } = await import("sonner");
         toast.success("Friend request rejected");
-        fetchNotifications();
+        await fetchNotifications();
       }
     } catch (err: any) {
       const { toast } = await import("sonner");
       toast.error(err.response?.data?.message || "Failed to reject request");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -147,11 +157,11 @@ export default function NotificationsPage() {
                   <div className="flex gap-2">
                     {req.status === "PENDING" ? (
                       <>
-                        <Button size="sm" onClick={() => handleAccept(req.entityId)} className="bg-primary hover:bg-primary/90 text-white rounded-xl font-medium">
-                          <Check className="h-4 w-4 mr-1" /> Accept
+                        <Button size="sm" onClick={() => handleAccept(req.entityId)} disabled={processingId !== null} className="bg-primary hover:bg-primary/90 text-white rounded-xl font-medium">
+                          {processingId === req.entityId ? "Wait..." : <><Check className="h-4 w-4 mr-1" /> Accept</>}
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleReject(req.entityId)} className="rounded-xl border-zinc-200 dark:border-zinc-700 font-medium">
-                          <X className="h-4 w-4 mr-1" /> Reject
+                        <Button size="sm" variant="outline" onClick={() => handleReject(req.entityId)} disabled={processingId !== null} className="rounded-xl border-zinc-200 dark:border-zinc-700 font-medium">
+                          {processingId === req.entityId ? "Wait..." : <><X className="h-4 w-4 mr-1" /> Reject</>}
                         </Button>
                       </>
                     ) : (

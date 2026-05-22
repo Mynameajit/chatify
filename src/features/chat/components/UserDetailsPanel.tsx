@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Calendar, Image as ImageIcon, ShieldAlert, ShieldBan, Trash2 } from "lucide-react";
+import { X, Calendar, Image as ImageIcon, ShieldAlert, ShieldBan, Trash2, Download } from "lucide-react";
 import { useUIStore } from "@/store/useUIStore";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { downloadMedia } from "@/lib/utils";
 
 export function UserDetailsPanel({ chatId }: { chatId: string }) {
   const { rightSidebarOpen, setRightSidebarOpen } = useUIStore();
@@ -111,7 +112,7 @@ export function UserDetailsPanel({ chatId }: { chatId: string }) {
             <Avatar className="h-24 w-24 border-4 border-white dark:border-zinc-900 shadow-lg mb-4">
               <AvatarImage src={profile.profilePhoto} />
               <AvatarFallback className="text-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
-                {profile.profilePhoto ? "no img do kuchh kukh jar" : "no img do kuchh kukh jar"}
+                no img
               </AvatarFallback>
             </Avatar>
             <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{profile.name}</h2>
@@ -136,9 +137,20 @@ export function UserDetailsPanel({ chatId }: { chatId: string }) {
                 {media.length > 0 ? (
                   <div className="grid grid-cols-3 gap-2">
                     {media.slice(0, 6).map((m: any) => (
-                      <div key={m.id} className="aspect-square rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 cursor-pointer hover:opacity-80 transition-opacity relative group">
+                      <div key={m.id} className="aspect-square rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 cursor-pointer transition-opacity relative group">
                         {m.type.startsWith("image") ? (
-                          <img src={m.url} alt="media" className="w-full h-full object-cover" />
+                          <>
+                            <img src={m.url} alt="media" className="w-full h-full object-cover" />
+                            <div 
+                              className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                downloadMedia(m.url, m.name || `shared_media_${m.id}`);
+                              }}
+                            >
+                              <Download className="w-5 h-5 text-white" />
+                            </div>
+                          </>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-zinc-200 dark:bg-zinc-800">
                             <span className="text-xs text-zinc-500 font-semibold uppercase">Video</span>

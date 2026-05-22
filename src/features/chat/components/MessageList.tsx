@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useChatStore } from "@/store/useChatStore";
-import { cn } from "@/lib/utils";
+import { cn, downloadMedia } from "@/lib/utils";
 import { 
   CheckCheck, 
   Clock, 
@@ -16,7 +16,8 @@ import {
   X, 
   ZoomIn, 
   ZoomOut, 
-  Play 
+  Play,
+  Download
 } from "lucide-react";
 
 export function MessageList({ chatId }: { chatId: string }) {
@@ -365,6 +366,18 @@ export function MessageList({ chatId }: { chatId: string }) {
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
                   {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (currentMedia) {
+                      downloadMedia(currentMedia.url, currentMedia.name || `attachment_${currentMedia.id}`);
+                    }
+                  }}
+                  className="p-2.5 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all active:scale-95"
+                  title="Download"
+                >
+                  <Download className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => {

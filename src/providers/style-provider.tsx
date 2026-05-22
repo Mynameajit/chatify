@@ -44,5 +44,18 @@ export function StyleProvider({ children }: { children: React.ReactNode }) {
 
   }, [themeColor, themeRadius, themeFont]);
 
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      (window as any).deferredPrompt = e;
+      window.dispatchEvent(new CustomEvent("pwa-installable"));
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
   return <>{children}</>;
 }
