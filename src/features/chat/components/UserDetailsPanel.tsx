@@ -29,10 +29,16 @@ export function UserDetailsPanel({ chatId }: { chatId: string }) {
   const otherParticipant = chat?.participants.find((p) => p.id !== user?.id);
 
   useEffect(() => {
-    if (!rightSidebarOpen || isGroup || !otherParticipant) return;
+    if (
+      !rightSidebarOpen ||
+      isGroup ||
+      !otherParticipant ||
+      !chat
+    ) return;
 
     const fetchDetails = async () => {
       setLoading(true);
+
       try {
         const [profileRes, mediaRes] = await Promise.all([
           api.get(`/users/${otherParticipant.id}`),
@@ -42,19 +48,22 @@ export function UserDetailsPanel({ chatId }: { chatId: string }) {
         if (profileRes.data.success) {
           setProfile(profileRes.data.data);
         }
+
         if (mediaRes.data.success) {
           setMedia(mediaRes.data.data);
         }
+
       } catch (error) {
         console.error("Failed to fetch user details", error);
+
       } finally {
         setLoading(false);
       }
     };
 
     fetchDetails();
-  }, [rightSidebarOpen, chat, otherParticipant, isGroup]);
 
+  }, [rightSidebarOpen, chat, otherParticipant, isGroup]);
   if (!rightSidebarOpen) return null;
   if (isGroup) {
     return (
@@ -141,7 +150,7 @@ export function UserDetailsPanel({ chatId }: { chatId: string }) {
                         {m.type.startsWith("image") ? (
                           <>
                             <img src={m.url} alt="media" className="w-full h-full object-cover" />
-                            <div 
+                            <div
                               className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -171,9 +180,9 @@ export function UserDetailsPanel({ chatId }: { chatId: string }) {
                   <ShieldAlert className="h-4 w-4 text-zinc-500" />
                   Privacy & Safety
                 </h3>
-                
-                <Button 
-                  variant={profile.isBlocked ? "outline" : "destructive"} 
+
+                <Button
+                  variant={profile.isBlocked ? "outline" : "destructive"}
                   className="w-full justify-start rounded-xl font-medium"
                   onClick={handleBlock}
                 >

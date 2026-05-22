@@ -1,37 +1,52 @@
 import dns from "dns";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 
-// Fallback DNS resolver for Neon database connection:
-// Since some local network resolvers (like routers) refuse wildcard subdomains for neon.tech,
-// we intercept dns.lookup inside Node.js to resolve Neon hostnames using Google Public DNS (8.8.8.8).
 const originalLookup = dns.lookup;
-dns.lookup = function (hostname, options, callback) {
+
+dns.lookup = function (
+  hostname: string,
+  options: any,
+  callback: any
+) {
   if (typeof options === "function") {
     callback = options;
     options = {};
   }
+
   if (hostname && hostname.includes("neon.tech")) {
     const resolver = new dns.Resolver();
+
     resolver.setServers(["8.8.8.8", "8.8.4.4"]);
+
     resolver.resolve4(hostname, (err, addresses) => {
       if (err || !addresses || !addresses.length) {
         originalLookup(hostname, options, callback);
+
       } else {
-        const castedOptions = (options as any) || {};
+        const castedOptions = options || {};
+
         if (castedOptions.all) {
-          callback(null, addresses.map(ip => ({ address: ip, family: 4 })) as any);
+          callback(
+            null,
+            addresses.map((ip) => ({
+              address: ip,
+              family: 4,
+            }))
+          );
+
         } else {
           callback(null, addresses[0], 4);
         }
       }
     });
+
   } else {
     originalLookup(hostname, options, callback);
   }
-} as any;
 
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import pg from "pg";
+} as typeof dns.lookup;
 
 const { Pool } = pg;
 
@@ -48,10 +63,15 @@ const prismaClientSingleton = () => {
 };
 
 declare global {
-  var prismaGlobal: ReturnType<typeof prismaClientSingleton> | undefined;
+  // eslint-disable-next-line no-var
+  var prismaGlobal:
+    | ReturnType<typeof prismaClientSingleton>
+    | undefined;
 }
 
-const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
+const prisma =
+  globalThis.prismaGlobal ??
+  prismaClientSingleton();
 
 export default prisma;
 

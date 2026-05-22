@@ -18,12 +18,9 @@ export default function ChatUserPage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const isGroupChat = userId?.startsWith("chat-") || false;
-
-  // Resolve direct chat if exists
-  const chat = isGroupChat
-    ? chats.find((c) => c.id === userId)
-    : chats.find((c) => c.type === "direct" && c.participants.some((p) => p.id === userId));
+  // Resolve chat by either direct ID or participant matching
+  const chat = chats.find(c => c.id === userId) || chats.find(c => c.type === "direct" && c.participants.some(p => p.id === userId));
+  const isGroupChat = chat?.type === "group";
 
   useEffect(() => {
     if (chat) {
@@ -68,6 +65,27 @@ export default function ChatUserPage() {
   useEffect(() => {
     fetchTargetProfile();
   }, [userId, isGroupChat]);
+
+  // Auto-create conversation if they are friends but chat doesn't exist
+  useEffect(() => {
+    if (!isLoadingProfile && profileUser?.relationship === "FRIENDS" && !chat && !isGroupChat) {
+      const createChat = async () => {
+        try {
+          const { default: api } = await import("@/lib/api");
+          const res = await api.post("/conversations", {
+            isGroup: false,
+            participantIds: [userId]
+          });
+          if (res.data.success) {
+            await fetchChats();
+          }
+        } catch (error) {
+          console.error("Failed to create conversation automatically:", error);
+        }
+      };
+      createChat();
+    }
+  }, [isLoadingProfile, profileUser?.relationship, chat, isGroupChat, userId, fetchChats]);
 
   const handleSendRequest = async () => {
     try {
@@ -138,7 +156,7 @@ export default function ChatUserPage() {
   if (isLoadingProfile) {
     return (
       <div className="flex-1 flex items-center justify-center bg-zinc-50/50 dark:bg-zinc-950/50 h-full w-full absolute inset-0">
-        <span className="text-sm text-zinc-500">Loading profile...</span>
+        <span className="text-sm text-zinc-500">Loading...</span>
       </div>
     );
   }

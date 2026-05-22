@@ -192,7 +192,16 @@ export default function NotificationsPage() {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{req.content}</span>
-                    <span className="text-xs text-zinc-500 mt-1">{new Date(req.createdAt).toLocaleDateString()}</span>
+                    <span className="text-xs text-zinc-500 mt-1">
+                      {req.createdAt ? (() => {
+                        try {
+                          const { formatDistanceToNow } = require("date-fns");
+                          return formatDistanceToNow(new Date(req.createdAt), { addSuffix: true });
+                        } catch(e) {
+                          return new Date(req.createdAt).toLocaleString();
+                        }
+                      })() : "Just now"}
+                    </span>
                   </div>
                 </div>
               ))

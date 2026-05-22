@@ -158,6 +158,13 @@ exports.Prisma.FriendshipScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.BlockedUserScalarFieldEnum = {
+  id: 'id',
+  blockerId: 'blockerId',
+  blockedId: 'blockedId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.ConversationScalarFieldEnum = {
   id: 'id',
   isGroup: 'isGroup',
@@ -288,6 +295,7 @@ exports.Prisma.ModelName = {
   Session: 'Session',
   FriendRequest: 'FriendRequest',
   Friendship: 'Friendship',
+  BlockedUser: 'BlockedUser',
   Conversation: 'Conversation',
   ConversationMember: 'ConversationMember',
   Message: 'Message',

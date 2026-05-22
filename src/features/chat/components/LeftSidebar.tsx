@@ -214,7 +214,7 @@ export function LeftSidebar() {
 
   const filteredChats = chats.filter((chat) => {
     if (searchQuery) {
-      const chatName = chat.name || chat.participants.find(p => p.id !== user?.id)?.name || "";
+      const chatName = chat.name || chat.participants.find(p => p.id !== user?.id)?.name || chat.participants[0]?.name || "";
       return chatName.toLowerCase().includes(searchQuery.toLowerCase());
     }
     return true;
@@ -372,7 +372,7 @@ export function LeftSidebar() {
                   onClick={() => {
                     setActiveChatId(chat.id);
                     const otherParticipant = chat.participants.find(p => p.id !== user?.id);
-                    const targetId = chat.type === "direct" && otherParticipant ? otherParticipant.id : chat.id;
+                    const targetId = chat.type === "direct" ? (otherParticipant?.id || user?.id || chat.id) : chat.id;
                     router.push(`/chats/${targetId}`);
                   }}
                 />
