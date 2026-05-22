@@ -8,10 +8,12 @@ interface UIState {
   themeRadius: string;
   themeFont: string;
   chatWallpaper: string;
+  unreadNotifsCount: number;
   
   toggleMobileSidebar: () => void;
   setMobileSidebarOpen: (isOpen: boolean) => void;
   setActiveSidebarTab: (tab: "chats" | "friends" | "notifications") => void;
+  setUnreadNotifsCount: (count: number | ((prev: number) => number)) => void;
   toggleRightSidebar: () => void;
   setRightSidebarOpen: (isOpen: boolean) => void;
   setThemeColor: (color: string) => void;
@@ -28,10 +30,14 @@ export const useUIStore = create<UIState>((set) => ({
   themeRadius: "0.5",
   themeFont: "Inter",
   chatWallpaper: "none",
+  unreadNotifsCount: 0,
   
   toggleMobileSidebar: () => set((state) => ({ isMobileSidebarOpen: !state.isMobileSidebarOpen })),
   setMobileSidebarOpen: (isOpen) => set({ isMobileSidebarOpen: isOpen }),
   setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab }),
+  setUnreadNotifsCount: (count) => set((state) => ({ 
+    unreadNotifsCount: typeof count === "function" ? count(state.unreadNotifsCount) : count 
+  })),
   toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
   setRightSidebarOpen: (isOpen) => set({ rightSidebarOpen: isOpen }),
   setThemeColor: (color) => set({ themeColor: color }),

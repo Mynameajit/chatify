@@ -94,4 +94,33 @@ export class ConversationService {
 
     return conversation;
   }
+
+  static async getMedia(conversationId: string, userId: string) {
+    // Verify membership
+    const member = await prisma.conversationMember.findUnique({
+      where: {
+        userId_conversationId: { userId, conversationId },
+      },
+    });
+
+    if (!member) {
+      throw new Error("Unauthorized access to conversation media");
+    }
+
+    const messagesWithMedia = await prisma.message.findMany({
+      where: {
+        conversationId,
+        type: {
+          in: ['IMAGE', 'VIDEO'],
+        },
+      },
+      include: {
+        attachments: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const mediaAttachments = messagesWithMedia.flatMap(m => m.attachments);
+    return mediaAttachments;
+  }
 }

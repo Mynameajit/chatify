@@ -10,9 +10,9 @@ import { motion } from "framer-motion";
 import { mockChats, mockNotifications } from "@/mock";
 
 export function MobileNav() {
-  const { activeSidebarTab, setActiveSidebarTab } = useUIStore();
+  const { activeSidebarTab, setActiveSidebarTab, unreadNotifsCount } = useUIStore();
   const { user } = useAuthStore();
-  const { activeChatId } = useChatStore();
+  const { activeChatId, chats } = useChatStore();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -26,8 +26,7 @@ export function MobileNav() {
   const isNotificationsActive = pathname === "/notifications";
   const isProfileActive = pathname === "/profile";
 
-  const totalUnreadChats = mockChats.reduce((acc, chat) => acc + chat.unreadCount, 0);
-  const unreadNotificationsCount = mockNotifications.filter(n => !n.isRead).length;
+  const totalUnreadChats = chats.reduce((acc, chat) => acc + (chat.unreadCount || 0), 0);
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-around z-50 pb-safe px-4">
@@ -89,9 +88,9 @@ export function MobileNav() {
         )}
         <div className="relative">
           <Bell className={`h-5 w-5 ${isNotificationsActive ? "scale-110" : ""}`} />
-          {unreadNotificationsCount > 0 && (
+          {unreadNotifsCount > 0 && (
             <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center shadow-sm border border-white dark:border-zinc-900 flex-shrink-0">
-              {unreadNotificationsCount}
+              {unreadNotifsCount}
             </span>
           )}
         </div>

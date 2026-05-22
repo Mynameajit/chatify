@@ -7,6 +7,7 @@ const conversationRoutes = new Hono();
 conversationRoutes.use('*', authMiddleware);
 
 conversationRoutes.get('/', ConversationController.getConversations);
-conversationRoutes.post('/create', ConversationController.createConversation);
+conversationRoutes.post('/', ConversationController.createConversation);
+conversationRoutes.get('/:id/media', ConversationController.getMedia);
 
 export default conversationRoutes;

@@ -2,7 +2,7 @@ import prisma from '@/server/db';
 import { UpdateProfileInput } from './validation';
 
 export class UserService {
-  static async getProfile(userId: string) {
+  static async getProfile(userId: string, currentUserId?: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -21,7 +21,35 @@ export class UserService {
       throw new Error('User not found');
     }
 
-    return user;
+    let friendshipDate = null;
+    let isBlocked = false;
+    let hasBlockedMe = false;
+
+    if (currentUserId && currentUserId !== userId) {
+      const friendship = await prisma.friendship.findFirst({
+        where: {
+          OR: [
+            { user1Id: currentUserId, user2Id: userId },
+            { user1Id: userId, user2Id: currentUserId },
+          ]
+        }
+      });
+      if (friendship) {
+        friendshipDate = friendship.createdAt;
+      }
+
+      const blockedByMe = await prisma.blockedUser.findUnique({
+        where: { blockerId_blockedId: { blockerId: currentUserId, blockedId: userId } }
+      });
+      isBlocked = !!blockedByMe;
+
+      const blockedByThem = await prisma.blockedUser.findUnique({
+        where: { blockerId_blockedId: { blockerId: userId, blockedId: currentUserId } }
+      });
+      hasBlockedMe = !!blockedByThem;
+    }
+
+    return { ...user, friendshipDate, isBlocked, hasBlockedMe };
   }
 
   static async updateProfile(userId: string, data: UpdateProfileInput) {
@@ -114,5 +142,49 @@ export class UserService {
         requestId,
       };
     });
+  }
+
+  static async blockUser(blockerId: string, blockedId: string) {
+    if (blockerId === blockedId) {
+      throw new Error("Cannot block yourself");
+    }
+
+    // Upsert block record
+    const block = await prisma.blockedUser.upsert({
+      where: {
+        blockerId_blockedId: { blockerId, blockedId }
+      },
+      update: {},
+      create: { blockerId, blockedId }
+    });
+
+    // Remove friendship if it exists
+    await prisma.friendship.deleteMany({
+      where: {
+        OR: [
+          { user1Id: blockerId, user2Id: blockedId },
+          { user1Id: blockedId, user2Id: blockerId },
+        ]
+      }
+    });
+
+    // Cancel friend requests
+    await prisma.friendRequest.deleteMany({
+      where: {
+        OR: [
+          { senderId: blockerId, receiverId: blockedId },
+          { senderId: blockedId, receiverId: blockerId },
+        ]
+      }
+    });
+
+    return { success: true };
+  }
+
+  static async unblockUser(blockerId: string, blockedId: string) {
+    await prisma.blockedUser.deleteMany({
+      where: { blockerId, blockedId }
+    });
+    return { success: true };
   }
 }

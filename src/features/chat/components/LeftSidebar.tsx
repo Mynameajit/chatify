@@ -5,6 +5,7 @@ import { Search, Bell, Settings, Edit, Users, MessageSquare, MessageSquareDashed
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
+import { useSocket } from "@/providers/SocketProvider";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { useChatStore } from "@/store/useChatStore";
@@ -24,11 +25,14 @@ import { FriendRequestsModal } from "@/features/friends/components/FriendRequest
 export function LeftSidebar() {
   const { user } = useAuthStore();
   const { activeChatId, setActiveChatId, chats, fetchChats } = useChatStore();
-  const { activeSidebarTab, setActiveSidebarTab } = useUIStore();
+  const { activeSidebarTab, setActiveSidebarTab, unreadNotifsCount, setUnreadNotifsCount } = useUIStore();
 
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [showAddFriend, setShowAddFriend] = useState(false);
+  const { socket } = useSocket();
   const [dbUsers, setDbUsers] = useState<any[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const router = useRouter();
@@ -38,7 +42,30 @@ export function LeftSidebar() {
 
   useEffect(() => {
     fetchChats();
+    fetchUnreadNotifications();
   }, [fetchChats]);
+
+  const fetchUnreadNotifications = async () => {
+    try {
+      const { default: api } = await import("@/lib/api");
+      const res = await api.get("/friends/notifications");
+      if (res.data.success) {
+        const unread = (res.data.data || []).filter((n: any) => !n.isRead).length;
+        setUnreadNotifsCount(unread);
+      }
+    } catch (err) {
+      console.error("Failed to fetch unread notifications", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleNewNotif = () => setUnreadNotifsCount(prev => prev + 1);
+    socket.on("notification:new", handleNewNotif);
+    return () => {
+      socket.off("notification:new", handleNewNotif);
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -83,7 +110,7 @@ export function LeftSidebar() {
       const { default: api } = await import("@/lib/api");
       const res = await api.get(`/users/search?q=${encodeURIComponent(query)}`);
       if (res.data.success) {
-        setDbUsers(res.data.data || []);
+        setDbUsers((res.data.data || []).filter((u: any) => u.id !== user?.id));
       }
     } catch (err) {
       console.error("Failed to fetch database users:", err);
@@ -96,7 +123,7 @@ export function LeftSidebar() {
     if (activeSidebarTab === "friends") {
       fetchDbUsers(searchQuery);
     }
-  }, [activeSidebarTab, searchQuery]);
+  }, [activeSidebarTab, searchQuery, showAddFriend]);
 
   const handleSearch = () => {
     setSearchQuery(searchInput);
@@ -111,6 +138,7 @@ export function LeftSidebar() {
   const handleSendRequest = async (receiverId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
+      setIsProcessing(receiverId);
       const { default: api } = await import("@/lib/api");
       const res = await api.post("/friends/request", { receiverId });
       if (res.data.success) {
@@ -126,12 +154,15 @@ export function LeftSidebar() {
     } catch (err: any) {
       const { toast } = await import("sonner");
       toast.error(err.response?.data?.message || "Failed to send request");
+    } finally {
+      setIsProcessing(null);
     }
   };
 
   const handleCancelRequest = async (requestId: string, friendId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
+      setIsProcessing(friendId);
       const { default: api } = await import("@/lib/api");
       const res = await api.post("/friends/cancel", { requestId });
       if (res.data.success) {
@@ -146,12 +177,15 @@ export function LeftSidebar() {
     } catch (err: any) {
       const { toast } = await import("sonner");
       toast.error(err.response?.data?.message || "Failed to cancel request");
+    } finally {
+      setIsProcessing(null);
     }
   };
 
-  const handleAcceptRequest = async (requestId: string, e: React.MouseEvent) => {
+  const handleAcceptRequest = async (requestId: string, friendId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
+      setIsProcessing(friendId);
       const { default: api } = await import("@/lib/api");
       const res = await api.post("/friends/accept", { requestId });
       if (res.data.success) {
@@ -167,6 +201,8 @@ export function LeftSidebar() {
     } catch (err: any) {
       const { toast } = await import("sonner");
       toast.error(err.response?.data?.message || "Failed to accept request");
+    } finally {
+      setIsProcessing(null);
     }
   };
 
@@ -222,10 +258,16 @@ export function LeftSidebar() {
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full h-8 w-8 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-            onClick={() => router.push('/notifications')}
+            className="relative rounded-full h-8 w-8 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+            onClick={() => {
+              setUnreadNotifsCount(0);
+              router.push('/notifications');
+            }}
           >
             <Bell className="h-4 w-4" />
+            {unreadNotifsCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-zinc-900" />
+            )}
           </Button>
           <Button
             variant="ghost"
@@ -285,7 +327,7 @@ export function LeftSidebar() {
             {activeSidebarTab === "friends" && (
               <>
                 <Users className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Add Friend</span>
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Friends</span>
               </>
             )}
             {activeSidebarTab === "notifications" && (
@@ -302,9 +344,9 @@ export function LeftSidebar() {
               <MessageSquare className="h-4 w-4 mr-2" />
               Chats
             </TabsTrigger>
-            <TabsTrigger value="friends" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:shadow-sm">
+            <TabsTrigger value="friends" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-700 data-[state=active]:shadow-sm" onClick={() => setShowAddFriend(false)}>
               <Users className="h-4 w-4 mr-2" />
-              Add Friend
+              Friends
             </TabsTrigger>
           </TabsList>
 
@@ -350,12 +392,28 @@ export function LeftSidebar() {
               exit={{ opacity: 0, x: -10 }}
               className="flex flex-col gap-1 py-2 w-full overflow-hidden"
             >
+              <div className="flex justify-between items-center px-1 mb-2">
+                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                  {showAddFriend ? "Find Users" : "Your Friends"}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 text-xs text-primary hover:bg-primary/10"
+                  onClick={() => setShowAddFriend(!showAddFriend)}
+                >
+                  {showAddFriend ? "Back to Friends" : "+ Add Friend"}
+                </Button>
+              </div>
+
               {isLoadingUsers ? (
                 <div className="flex items-center justify-center py-8">
                   <span className="text-sm text-zinc-500">Loading users...</span>
                 </div>
               ) : (
-                dbUsers.map((friend) => {
+                dbUsers
+                  .filter(u => showAddFriend ? u.relationship !== "FRIENDS" : u.relationship === "FRIENDS")
+                  .map((friend) => {
                   return (
                     <div
                       key={friend.id}
@@ -394,28 +452,31 @@ export function LeftSidebar() {
                           <Button
                             size="sm"
                             variant="destructive"
+                            disabled={isProcessing === friend.id}
                             className="rounded-full text-xs h-7 w-24 flex items-center justify-center font-semibold bg-red-500 hover:bg-red-600 text-white"
                             onClick={(e) => handleCancelRequest(friend.requestId, friend.id, e)}
                           >
-                            Cancel
+                            {isProcessing === friend.id ? "Wait..." : "Cancel"}
                           </Button>
                         )}
                         {friend.relationship === "RECEIVED" && (
                           <Button
                             size="sm"
+                            disabled={isProcessing === friend.id}
                             className="rounded-full text-xs h-7 w-24 flex items-center justify-center font-semibold bg-green-500 hover:bg-green-600 text-white"
-                            onClick={(e) => handleAcceptRequest(friend.requestId, e)}
+                            onClick={(e) => handleAcceptRequest(friend.requestId, friend.id, e)}
                           >
-                            Accept
+                            {isProcessing === friend.id ? "Wait..." : "Accept"}
                           </Button>
                         )}
                         {friend.relationship === "NONE" && (
                           <Button
                             size="sm"
+                            disabled={isProcessing === friend.id}
                             className="rounded-full text-xs h-7 w-24 flex items-center justify-center font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
                             onClick={(e) => handleSendRequest(friend.id, e)}
                           >
-                            Follow
+                            {isProcessing === friend.id ? "Wait..." : "Follow"}
                           </Button>
                         )}
                       </div>
@@ -423,9 +484,9 @@ export function LeftSidebar() {
                   );
                 })
               )}
-              {!isLoadingUsers && dbUsers.length === 0 && (
+              {!isLoadingUsers && dbUsers.filter(u => showAddFriend ? u.relationship !== "FRIENDS" : u.relationship === "FRIENDS").length === 0 && (
                 <div className="text-center py-8 text-zinc-500 text-sm">
-                  No users found.
+                  {showAddFriend ? "No users found." : "No friends found. Add some!"}
                 </div>
               )}
             </motion.div>

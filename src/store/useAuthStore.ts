@@ -23,7 +23,15 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
 
       login: (user, token) => set({ user, token, isAuthenticated: true }),
-      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+      logout: () => {
+        set({ user: null, token: null, isAuthenticated: false });
+        try {
+          const { useChatStore } = require('./useChatStore');
+          useChatStore.getState().setChats([]);
+        } catch (e) {
+          console.error('Failed to clear chat store on logout', e);
+        }
+      },
       updateUser: (data) =>
         set((state) => ({
           user: state.user ? { ...state.user, ...data } : null,

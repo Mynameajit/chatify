@@ -5,13 +5,14 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
 
 export const authMiddleware = async (c: Context, next: Next) => {
-  let token = getCookie(c, 'token');
-
+  let token;
+  const authHeader = c.req.header('Authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  }
+  
   if (!token) {
-    const authHeader = c.req.header('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    }
+    token = getCookie(c, 'token');
   }
 
   if (!token) {

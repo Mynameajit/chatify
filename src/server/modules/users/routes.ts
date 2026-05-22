@@ -9,6 +9,8 @@ userRoutes.use('*', authMiddleware);
 userRoutes.get('/me', UserController.getMe);
 userRoutes.patch('/profile', UserController.updateProfile);
 userRoutes.get('/search', UserController.searchUsers);
+userRoutes.post('/block', UserController.blockUser);
+userRoutes.post('/unblock', UserController.unblockUser);
 userRoutes.get('/:id', UserController.getUserProfile);
 
 export default userRoutes;

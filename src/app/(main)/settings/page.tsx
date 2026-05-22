@@ -12,7 +12,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { themeColor, setThemeColor, themeRadius, setThemeRadius, themeFont, setThemeFont } = useUIStore();
-  const [activeTab, setActiveTab] = useState("appearance");
+  const [activeTab, setActiveTab] = useState("general");
 
   const colors = [
     { name: "Zinc", value: "zinc", class: "bg-zinc-900 dark:bg-zinc-100" },
@@ -66,6 +66,18 @@ export default function SettingsPage() {
                   <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Language</h3>
                   <p className="text-sm text-zinc-500 mt-1">Select your preferred language for the interface.</p>
                   <Button variant="outline" className="mt-3">English (US)</Button>
+                </div>
+              </div>
+
+              {/* Developer Footer */}
+              <div className="mt-16 pt-8 border-t border-zinc-200 dark:border-zinc-800 flex flex-col items-center">
+                <Button className="w-full max-w-sm rounded-xl font-semibold mb-6">
+                  Get App
+                </Button>
+                <div className="text-center text-sm text-zinc-500 space-y-1">
+                  <p className="font-medium text-zinc-900 dark:text-zinc-100">Developer: Ajit</p>
+                  <p>Email: emailajit@gmail.com</p>
+                  <p>Portfolio: <a href="https://developer-ajit.web.app/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://developer-ajit.web.app/</a></p>
                 </div>
               </div>
             </TabsContent>

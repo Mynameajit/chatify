@@ -45,10 +45,35 @@ export class UserController {
   static async getUserProfile(c: Context) {
     try {
       const id = c.req.param('id') || '';
-      const user = await UserService.getProfile(id);
+      const currentUserId = c.get('userId'); // Optional or required depending on route auth
+      const user = await UserService.getProfile(id, currentUserId);
       return c.json({ success: true, data: user });
     } catch (error: any) {
       return c.json({ success: false, message: error.message }, 404);
+    }
+  }
+
+  static async blockUser(c: Context) {
+    try {
+      const currentUserId = c.get('userId');
+      const { userId } = await c.req.json();
+      if (!userId) throw new Error("userId to block is required");
+      const result = await UserService.blockUser(currentUserId, userId);
+      return c.json({ success: true, data: result });
+    } catch (error: any) {
+      return c.json({ success: false, message: error.message }, 400);
+    }
+  }
+
+  static async unblockUser(c: Context) {
+    try {
+      const currentUserId = c.get('userId');
+      const { userId } = await c.req.json();
+      if (!userId) throw new Error("userId to unblock is required");
+      const result = await UserService.unblockUser(currentUserId, userId);
+      return c.json({ success: true, data: result });
+    } catch (error: any) {
+      return c.json({ success: false, message: error.message }, 400);
     }
   }
 }

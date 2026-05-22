@@ -27,4 +27,17 @@ export class ConversationController {
       return c.json({ success: false, message: error.message }, 400);
     }
   }
+
+  static async getMedia(c: Context) {
+    try {
+      const userId = c.get('userId');
+      const conversationId = c.req.param('id');
+      if (!conversationId) throw new Error("Conversation ID required");
+      
+      const media = await ConversationService.getMedia(conversationId, userId);
+      return c.json({ success: true, data: media }, 200);
+    } catch (error: any) {
+      return c.json({ success: false, message: error.message }, 400);
+    }
+  }
 }
