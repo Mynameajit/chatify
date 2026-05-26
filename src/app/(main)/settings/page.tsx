@@ -59,7 +59,7 @@ export default function SettingsPage() {
   const radiuses = ["0", "0.3", "0.5", "0.75", "1"];
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-zinc-50 dark:bg-zinc-950 overflow-y-auto">
+    <div className="flex-1 min-h-0 flex flex-col h-full bg-zinc-50 dark:bg-zinc-950 overflow-y-auto">
       {/* Header */}
       <div className="flex items-center px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md z-10">
         <Button variant="ghost" size="icon" onClick={() => router.push("/")} className="mr-2">
@@ -71,7 +71,7 @@ export default function SettingsPage() {
       <div className="p-4 md:p-6 max-w-4xl mx-auto w-full">
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full justify-start h-12 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl mb-6 overflow-x-auto flex-nowrap hide-scrollbar">
+          <TabsList className="w-full flex flex-wrap justify-start h-auto p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl mb-6 gap-1">
             <TabsTrigger value="general" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-primary data-[state=active]:shadow-sm px-4 py-2 text-sm font-medium transition-all">
               <Settings className="h-4 w-4 mr-2" /> General
             </TabsTrigger>

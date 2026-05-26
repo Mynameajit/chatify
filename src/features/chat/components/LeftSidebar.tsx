@@ -111,7 +111,15 @@ export function LeftSidebar() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      import("sonner").then(({ toast }) => {
+        toast.info(
+          "PWA install prompt not ready.",
+          { description: "Try clicking 'Install App' or 'Add to Home Screen' from your browser's menu instead, or ensure you are on a secure (https) connection." }
+        );
+      });
+      return;
+    }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     console.log(`PWA installation outcome: ${outcome}`);
@@ -265,8 +273,9 @@ export function LeftSidebar() {
             onClick={handleInstallClick}
             title="Download App"
           >
-            <img src="/logo.png" alt="Logo" className="h-4 w-4 object-contain" />
-            <span className="hidden sm:inline">Get App</span>
+            <Download />
+            {/* <img src="/logo.png" alt="Logo" className="h-4 w-4 object-contain" />
+            <span className="hidden sm:inline">Get App</span> */}
           </Button>
 
           <Button
@@ -385,14 +394,14 @@ export function LeftSidebar() {
       </div>
 
       {/* List Area */}
-      <ScrollArea className="flex-1 px-3">
+      <ScrollArea className="flex-1 min-h-0 px-3">
         <AnimatePresence>
           {activeSidebarTab === "chats" && (
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
-              className="flex flex-col gap-1 py-2"
+              className="flex flex-col gap-1 py-2 pb-20"
             >
               {isChatsLoading ? (
                 <div className="flex flex-col gap-1 py-2">
@@ -422,8 +431,24 @@ export function LeftSidebar() {
                 ))
               )}
               {!isChatsLoading && hasFetchedChats && filteredChats.length === 0 && (
-                <div className="text-center py-8 text-zinc-500 text-sm">
-                  No chats found.
+                <div className="flex flex-col items-center justify-center py-16 px-4 text-center animate-in fade-in zoom-in duration-300">
+                  <div className="h-16 w-16 mb-4 rounded-full bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center shadow-sm border border-zinc-200/50 dark:border-zinc-700/50">
+                    <MessageSquareDashed className="h-8 w-8 text-zinc-400 dark:text-zinc-500" />
+                  </div>
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1.5">No chats found</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-[200px] leading-relaxed">
+                    {searchQuery ? "We couldn't find any chats matching your search." : "You don't have any active conversations yet."}
+                  </p>
+                  {!searchQuery && (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="mt-5 rounded-full text-xs font-semibold px-5 shadow-sm"
+                      onClick={() => setActiveSidebarTab("friends")}
+                    >
+                      Find Friends
+                    </Button>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -434,7 +459,7 @@ export function LeftSidebar() {
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
-              className="flex flex-col gap-1 py-2 w-full overflow-hidden"
+              className="flex flex-col gap-1 py-2 w-full pb-20"
             >
               <div className="flex justify-between items-center px-1 mb-2">
                 <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
@@ -538,8 +563,26 @@ export function LeftSidebar() {
                   })
               )}
               {!isLoadingUsers && dbUsers.filter(u => showAddFriend ? u.relationship !== "FRIENDS" : u.relationship === "FRIENDS").length === 0 && (
-                <div className="text-center py-8 text-zinc-500 text-sm">
-                  {showAddFriend ? "No users found." : "No friends found. Add some!"}
+                <div className="flex flex-col items-center justify-center py-16 px-4 text-center animate-in fade-in zoom-in duration-300">
+                  <div className="h-16 w-16 mb-4 rounded-full bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center shadow-sm border border-zinc-200/50 dark:border-zinc-700/50">
+                    <Users className="h-8 w-8 text-zinc-400 dark:text-zinc-500" />
+                  </div>
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1.5">
+                    {showAddFriend ? "No users found" : "No friends yet"}
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-[200px] leading-relaxed">
+                    {showAddFriend ? "We couldn't find anyone matching your search." : "You haven't added any friends yet. Find someone to chat with!"}
+                  </p>
+                  {!showAddFriend && (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="mt-5 rounded-full text-xs font-semibold px-5 shadow-sm"
+                      onClick={() => setShowAddFriend(true)}
+                    >
+                      Find Users
+                    </Button>
+                  )}
                 </div>
               )}
             </motion.div>

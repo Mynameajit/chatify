@@ -58,7 +58,7 @@ export function MessageInput({ chatId }: { chatId: string }) {
     const { useChatStore } = await import("@/store/useChatStore");
     const currentUser = useAuthStore.getState().user;
 
-    let optimisticAttachments = undefined;
+    let optimisticAttachments: { id: string; type: "image" | "video" | "audio" | "document"; url: string; name: string; size: number }[] | undefined = undefined;
     if (currentSelectedFile) {
       optimisticAttachments = [{
         id: `temp-att-${Date.now()}`,
@@ -219,7 +219,7 @@ export function MessageInput({ chatId }: { chatId: string }) {
       )}
 
       <div className="p-2 py-2 md:p-4">
-        <form onSubmit={handleSend} className="flex items-end gap-2">
+        <form onSubmit={handleSendMessage} className="flex items-end gap-2">
           <div className="flex-1  rounded-full md:rounded-2xl flex items-center p-1 md:p-1.5 transition-colors  ">
 
             <Button

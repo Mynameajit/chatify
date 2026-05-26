@@ -29,7 +29,7 @@ export function MobileNav() {
   const totalUnreadChats = chats.reduce((acc, chat) => acc + (chat.unreadCount || 0), 0);
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-around z-50 pb-safe px-4">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 min-h-16 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-around z-50 pb-[env(safe-area-inset-bottom)] pt-2 px-4">
       
       {/* Chats Tab */}
       <button 

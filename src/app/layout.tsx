@@ -8,6 +8,7 @@ import QueryProvider from "@/providers/query-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CallModal } from "@/components/shared/CallModal";
+import { OfflineIndicator } from "@/components/shared/OfflineIndicator";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,6 +54,7 @@ export default function RootLayout({
                 <TooltipProvider>
                   {children}
                   <CallModal />
+                  <OfflineIndicator />
                 </TooltipProvider>
               </SocketProvider>
               <Toaster position="top-right" />

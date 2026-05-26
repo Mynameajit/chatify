@@ -41,7 +41,7 @@ export function RightSidebar() {
         </Button>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-6 flex flex-col items-center border-b border-zinc-200 dark:border-zinc-800">
           <Avatar className="h-24 w-24 mb-4 border-2 border-white dark:border-zinc-900 shadow-xl bg-white dark:bg-zinc-900">
             <AvatarImage src={avatar} />

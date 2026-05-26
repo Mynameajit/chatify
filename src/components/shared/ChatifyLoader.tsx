@@ -5,20 +5,22 @@ import { cn } from "@/lib/utils";
 
 interface ChatifyLoaderProps {
   className?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
 export function ChatifyLoader({ className, size = "md" }: ChatifyLoaderProps) {
   const sizeClasses = {
-    sm: "w-8 h-8",
-    md: "w-12 h-12",
-    lg: "w-16 h-16",
+    sm: "w-10 h-10",
+    md: "w-16 h-16",
+    lg: "w-24 h-24",
+    xl: "w-32 h-32",
   };
 
   const iconSizes = {
-    sm: "w-4 h-4",
-    md: "w-6 h-6",
-    lg: "w-8 h-8",
+    sm: "w-full h-full",
+    md: "w-full h-full",
+    lg: "w-full h-full",
+    xl: "w-full h-full",
   };
 
   return (

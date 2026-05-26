@@ -39,6 +39,7 @@ export interface Message {
   reactions?: MessageReaction[];
   replyTo?: string; // ID of the message being replied to
   isEdited?: boolean;
+  type?: string;
 }
 
 export interface Chat {

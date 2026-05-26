@@ -45,7 +45,7 @@ export default function MainPage() {
 
       {/* Right Sidebar (Profile/Details) */}
       {rightSidebarOpen && (
-        <div className="w-full lg:w-[360px] border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex-shrink-0 animate-in slide-in-from-right-10 duration-300 absolute inset-0 lg:static z-20">
+        <div className="w-full lg:w-[360px] border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0 animate-in slide-in-from-right-10 duration-300 absolute inset-0 lg:static z-20">
           <RightSidebar />
         </div>
       )}

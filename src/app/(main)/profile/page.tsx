@@ -127,10 +127,10 @@ export default function ProfilePage() {
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">My Profile</h2>
       </div>
 
-      <div className="p-4 md:p-8 max-w-3xl mx-auto w-full space-y-8 animate-in fade-in duration-300">
+      <div className="p-0 md:p-8 max-w-3xl mx-auto w-full space-y-0 md:space-y-8 animate-in fade-in duration-300">
         
         {/* Profile Card */}
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-zinc-900 border-y md:border border-zinc-200 dark:border-zinc-800 rounded-none md:rounded-3xl overflow-hidden shadow-none md:shadow-sm">
           {/* Cover Photo */}
           <div className="h-32 md:h-48 bg-gradient-to-r from-primary via-purple-500 to-pink-500 w-full relative">
             <button className="absolute top-4 right-4 bg-black/20 hover:bg-black/40 backdrop-blur-md text-white p-2 rounded-full transition-colors">
@@ -138,11 +138,11 @@ export default function ProfilePage() {
             </button>
           </div>
           
-          <div className="px-6 md:px-10 pb-8 relative">
+          <div className="px-5 md:px-10 pb-8 relative">
             {/* Avatar */}
-            <div className="flex justify-between items-end -mt-16 mb-6">
-              <div className="relative group">
-                <Avatar className="h-32 w-32 border-4 border-white dark:border-zinc-900 shadow-xl bg-white dark:bg-zinc-900">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-end -mt-12 md:-mt-16 mb-6 gap-4">
+              <div className="relative group self-start">
+                <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-white dark:border-zinc-900 shadow-xl bg-white dark:bg-zinc-900">
                   <AvatarImage src={user?.avatar} />
                   <AvatarFallback className="text-4xl font-bold bg-primary/10 text-primary">
                     {user?.name?.charAt(0)}
@@ -260,8 +260,8 @@ export default function ProfilePage() {
                       <Input 
                         value={formData.website} 
                         onChange={(e) => setFormData({...formData, website: e.target.value})}
-                        disabled={!isEditing}
-                        className="rounded-xl pl-9 bg-zinc-50 dark:bg-zinc-800/50 disabled:opacity-100 disabled:border-transparent focus-visible:ring-1 focus-visible:ring-primary"
+                        disabled
+                        className="rounded-xl pl-9 bg-zinc-50 dark:bg-zinc-800/50 disabled:opacity-70 disabled:border-transparent cursor-not-allowed"
                       />
                     </div>
                   </div>
