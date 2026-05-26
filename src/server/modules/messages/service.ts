@@ -181,6 +181,33 @@ export class MessageService {
         where: { id: messageId },
         data: { isDeleted: true, content: null },
       });
+
+      // Broadcast message deletion over sockets in real-time
+      try {
+        const members = await prisma.conversationMember.findMany({
+          where: { conversationId: message.conversationId },
+          select: { userId: true },
+        });
+
+        const { getIO } = await import('@/server/socket/index');
+        const io = getIO();
+        if (io) {
+          io.to(`conversation:${message.conversationId}`).emit('message:deleted', {
+            chatId: message.conversationId,
+            messageId,
+          });
+
+          members.forEach((member) => {
+            io.to(`user:${member.userId}`).emit('message:deleted', {
+              chatId: message.conversationId,
+              messageId,
+            });
+          });
+        }
+      } catch (err) {
+        console.error('Failed to emit message:deleted socket event:', err);
+      }
+
       return { success: true, forEveryone: true };
     } else {
       // In a real app we'd track "deleted for me" in a join table.

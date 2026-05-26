@@ -38,17 +38,58 @@ export function MessageInput({ chatId }: { chatId: string }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showActions]);
 
-  const handleSend = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() && !selectedFile) return;
 
+    // Fast-path: capture current input state
+    const messageContent = message.trim();
+    const currentSelectedFile = selectedFile;
+    const optimisticId = `temp-${Date.now()}`;
+    
+    // Clear UI state instantly for snappy UX
+    setMessage("");
+    setSelectedImage(null);
+    setSelectedFile(null);
+    setShowEmoji(false);
+    setShowActions(false);
+
+    const { useAuthStore } = await import("@/store/useAuthStore");
+    const { useChatStore } = await import("@/store/useChatStore");
+    const currentUser = useAuthStore.getState().user;
+
+    let optimisticAttachments = undefined;
+    if (currentSelectedFile) {
+      optimisticAttachments = [{
+        id: `temp-att-${Date.now()}`,
+        type: currentSelectedFile.type.startsWith('video/') ? 'video' : 'image',
+        url: URL.createObjectURL(currentSelectedFile),
+        name: currentSelectedFile.name,
+        size: currentSelectedFile.size,
+      }];
+    }
+
+    // Optimistic UI Update!
+    if (currentUser) {
+      useChatStore.getState().addMessage(chatId, {
+        id: optimisticId,
+        chatId,
+        senderId: currentUser.id,
+        content: messageContent,
+        timestamp: new Date(),
+        status: 'sent',
+        attachments: optimisticAttachments,
+      });
+      useChatStore.getState().fetchChats();
+    }
+
     try {
-      setIsUploading(true);
       let attachments = undefined;
 
-      if (selectedFile) {
+      if (currentSelectedFile) {
+        setIsUploading(true);
         const formData = new FormData();
-        formData.append('file', selectedFile);
+        formData.append('file', currentSelectedFile);
         
         const uploadRes = await api.post('/uploads/image', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -59,21 +100,25 @@ export function MessageInput({ chatId }: { chatId: string }) {
             url: uploadRes.data.data.url,
             type: uploadRes.data.data.type,
             size: uploadRes.data.data.bytes,
-            name: selectedFile.name,
+            name: currentSelectedFile.name,
           }];
         }
       }
 
+      const isVideo = currentSelectedFile?.type.startsWith('video/');
+      const messageType = currentSelectedFile ? (isVideo ? 'VIDEO' : 'IMAGE') : 'TEXT';
+
       const res = await api.post('/messages/send', {
         conversationId: chatId,
-        content: message.trim() || undefined,
-        type: selectedFile ? 'IMAGE' : 'TEXT',
+        content: messageContent || undefined,
+        type: messageType,
         attachments
       });
 
       if (res.data.success) {
         const newMsg = res.data.data;
-        const { useChatStore } = await import("@/store/useChatStore");
+        // Swap optimistic message with the real one
+        useChatStore.getState().removeMessageLocally(chatId, optimisticId);
         useChatStore.getState().addMessage(chatId, {
           id: newMsg.id,
           chatId: newMsg.conversationId,
@@ -91,14 +136,10 @@ export function MessageInput({ chatId }: { chatId: string }) {
         });
         useChatStore.getState().fetchChats();
       }
-
-      setMessage("");
-      setSelectedImage(null);
-      setSelectedFile(null);
-      setShowEmoji(false);
-      setShowActions(false);
     } catch (error) {
+      console.error(error);
       toast.error('Failed to send message');
+      useChatStore.getState().removeMessageLocally(chatId, optimisticId);
     } finally {
       setIsUploading(false);
     }
@@ -121,13 +162,17 @@ export function MessageInput({ chatId }: { chatId: string }) {
   return (
     <div className="flex flex-col bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 relative">
 
-      {/* Image Preview Area */}
+      {/* Image/Video Preview Area */}
       {selectedImage && (
         <div className="p-2 md:p-4 pb-0 flex items-start">
           <div className="relative inline-block">
-            <img src={selectedImage} alt="Preview" className="h-24 md:h-32 w-auto rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 shadow-sm" />
+            {selectedFile?.type.startsWith('video/') ? (
+              <video src={selectedImage} className="h-24 md:h-32 w-auto rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 shadow-sm" controls />
+            ) : (
+              <img src={selectedImage} alt="Preview" className="h-24 md:h-32 w-auto rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 shadow-sm" />
+            )}
             <button
-              onClick={() => setSelectedImage(null)}
+              onClick={() => { setSelectedImage(null); setSelectedFile(null); }}
               className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-colors z-10"
             >
               <X className="h-4 w-4" />
@@ -192,7 +237,7 @@ export function MessageInput({ chatId }: { chatId: string }) {
 
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,video/*"
               className="hidden"
               ref={fileInputRef}
               onChange={handleImageSelect}

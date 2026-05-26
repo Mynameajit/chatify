@@ -15,6 +15,9 @@ model User {
   bio          String?
   lastSeen     DateTime @default(now())
   isOnline     Boolean  @default(false)
+  messageTone  String   @default("message")
+  ringtone     String   @default("call")
+  pushEnabled  Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -32,6 +35,7 @@ model User {
   notifications    Notification[]
   blockedUsers     BlockedUser[]        @relation("BlockedUsers")
   blockedBy        BlockedUser[]        @relation("BlockedBy")
+  pushSubscriptions PushSubscription[]
 }
 
 model Session {
@@ -251,4 +255,18 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

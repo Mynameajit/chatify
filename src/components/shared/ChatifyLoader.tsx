@@ -24,10 +24,10 @@ export function ChatifyLoader({ className, size = "md" }: ChatifyLoaderProps) {
   return (
     <div className={cn("flex flex-col items-center justify-center gap-3", className)}>
       <div className={cn(
-        "relative rounded-2xl bg-primary/10 flex items-center justify-center",
+        "relative rounded-2xl flex items-center justify-center overflow-hidden",
         sizeClasses[size]
       )}>
-        <MessageSquareDashed className={cn("text-primary animate-pulse", iconSizes[size])} />
+        <img src="/logo.png" alt="Loading" className={cn("object-contain animate-bounce", iconSizes[size])} />
         <div className="absolute inset-0 rounded-2xl border-2 border-primary/20 animate-ping opacity-20" style={{ animationDuration: '1.5s' }} />
       </div>
       <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400 animate-pulse">

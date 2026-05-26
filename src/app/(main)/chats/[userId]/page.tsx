@@ -3,15 +3,18 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useChatStore } from "@/store/useChatStore";
+import { useSocket } from "@/providers/SocketProvider";
 import { ChatWindow } from "@/features/chat/components/ChatWindow";
 import { ShieldAlert, ArrowLeft, UserX, UserCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ChatSkeleton } from "@/features/chat/components/ChatSkeleton";
 
 export default function ChatUserPage() {
   const params = useParams();
   const router = useRouter();
-  const { chats, fetchChats, setActiveChatId, markMessagesAsSeen } = useChatStore();
+  const { chats, fetchChats, setActiveChatId, markMessagesAsSeen, isChatsLoading, hasFetchedChats } = useChatStore();
+  const { socket } = useSocket();
   const userId = params?.userId as string;
 
   const [profileUser, setProfileUser] = useState<any | null>(null);
@@ -66,9 +69,30 @@ export default function ChatUserPage() {
     fetchTargetProfile();
   }, [userId, isGroupChat]);
 
+  // Listen for friend accepted events
+  useEffect(() => {
+    if (!socket) return;
+    const handleFriendAccepted = (data: any) => {
+      fetchTargetProfile();
+    };
+    const handleUserUpdated = (data: any) => {
+      if (data.userId === userId) {
+        fetchTargetProfile();
+      }
+    };
+    
+    socket.on("friend:accepted", handleFriendAccepted);
+    socket.on("user:updated", handleUserUpdated);
+    
+    return () => {
+      socket.off("friend:accepted", handleFriendAccepted);
+      socket.off("user:updated", handleUserUpdated);
+    };
+  }, [socket, userId]);
+
   // Auto-create conversation if they are friends but chat doesn't exist
   useEffect(() => {
-    if (!isLoadingProfile && profileUser?.relationship === "FRIENDS" && !chat && !isGroupChat) {
+    if (!isLoadingProfile && profileUser?.relationship === "FRIENDS" && !chat && !isGroupChat && !isChatsLoading) {
       const createChat = async () => {
         try {
           const { default: api } = await import("@/lib/api");
@@ -85,7 +109,7 @@ export default function ChatUserPage() {
       };
       createChat();
     }
-  }, [isLoadingProfile, profileUser?.relationship, chat, isGroupChat, userId, fetchChats]);
+  }, [isLoadingProfile, profileUser?.relationship, chat, isGroupChat, userId, fetchChats, isChatsLoading]);
 
   const handleSendRequest = async () => {
     try {
@@ -153,16 +177,17 @@ export default function ChatUserPage() {
 
   if (!userId) return null;
 
-  if (isLoadingProfile) {
+  // If we already found the chat in our store, we don't need to block on profile loading
+  if (isChatsLoading || (!hasFetchedChats) || (!chat && isLoadingProfile)) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-zinc-50/50 dark:bg-zinc-950/50 h-full w-full absolute inset-0">
-        <span className="text-sm text-zinc-500">Loading...</span>
+      <div className="flex-1 h-full w-full absolute inset-0 animate-in fade-in duration-300">
+        <ChatSkeleton />
       </div>
     );
   }
 
   // If user does not exist at all in our system and it's not a group chat
-  if (!isGroupChat && !profileUser) {
+  if (!isGroupChat && !profileUser && !isLoadingProfile && !chat) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 bg-zinc-50/50 dark:bg-zinc-950/50 h-full w-full absolute inset-0">
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-3xl p-8 max-w-md w-full text-center relative overflow-hidden">

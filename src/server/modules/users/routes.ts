@@ -11,6 +11,7 @@ userRoutes.patch('/profile', UserController.updateProfile);
 userRoutes.get('/search', UserController.searchUsers);
 userRoutes.post('/block', UserController.blockUser);
 userRoutes.post('/unblock', UserController.unblockUser);
+userRoutes.post('/change-password', UserController.changePassword);
 userRoutes.get('/:id', UserController.getUserProfile);
 
 export default userRoutes;

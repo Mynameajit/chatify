@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import api from "@/lib/api";
 
 export function SettingsModal({ children }: { children: React.ReactNode }) {
   const { setTheme, theme } = useTheme();
@@ -18,6 +20,9 @@ export function SettingsModal({ children }: { children: React.ReactNode }) {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [onlineStatus, setOnlineStatus] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -51,6 +56,27 @@ export function SettingsModal({ children }: { children: React.ReactNode }) {
       toast.info(
         "To install Chatify on mobile: Tap the Share button and select 'Add to Home Screen'. On desktop: Click the Install icon in the browser address bar."
       );
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword) {
+      toast.error("Please fill in both password fields.");
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      const res = await api.post("/users/change-password", { currentPassword, newPassword });
+      if (res.data.success) {
+        toast.success("Password changed successfully!");
+        setCurrentPassword("");
+        setNewPassword("");
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to change password.");
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -284,6 +310,42 @@ export function SettingsModal({ children }: { children: React.ReactNode }) {
                     <Label className="text-sm font-semibold">Block Caller Screenshots</Label>
                     <Switch />
                   </div>
+                </div>
+
+                <div className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Change Password</h4>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Update your account password securely.</p>
+                  </div>
+                  <form onSubmit={handleChangePassword} className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Current Password</Label>
+                      <Input 
+                        type="password" 
+                        placeholder="••••••••" 
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="h-9 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">New Password</Label>
+                      <Input 
+                        type="password" 
+                        placeholder="••••••••" 
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="h-9 rounded-xl"
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      disabled={isChangingPassword || !currentPassword || !newPassword}
+                      className="w-full rounded-xl h-9 text-xs font-semibold"
+                    >
+                      {isChangingPassword ? "Updating..." : "Update Password"}
+                    </Button>
+                  </form>
                 </div>
               </TabsContent>
               

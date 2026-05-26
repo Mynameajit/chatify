@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { Chat, Message } from "@/types";
+import api from "@/lib/api";
+import { useAuthStore } from "./useAuthStore";
 
 interface ChatState {
   chats: Chat[];
@@ -9,6 +11,8 @@ interface ChatState {
   hasMore: Record<string, boolean>; // chatId -> boolean
   isLoadingFirstPage: Record<string, boolean>; // chatId -> boolean
   isLoadingMore: Record<string, boolean>; // chatId -> boolean
+  isChatsLoading: boolean;
+  hasFetchedChats: boolean;
   
   setChats: (chats: Chat[]) => void;
   setActiveChatId: (chatId: string | null) => void;
@@ -20,10 +24,12 @@ interface ChatState {
   fetchMessages: (chatId: string) => Promise<void>;
   loadMoreMessages: (chatId: string) => Promise<void>;
   markMessagesAsSeen: (chatId: string) => Promise<void>;
-  updateMessagesStatus: (chatId: string, messageIds: string[], status: 'seen' | 'sent') => void;
+  updateMessagesStatus: (chatId: string, messageIds: string[], status: 'seen' | 'sent' | 'delivered') => void;
+  deleteMessage: (chatId: string, messageId: string, forEveryone: boolean) => Promise<void>;
+  removeMessageLocally: (chatId: string, messageId: string) => void;
 }
 
-export const useChatStore = create<ChatState>((set) => ({
+export const useChatStore = create<ChatState>((set, get) => ({
   chats: [],
   activeChatId: null,
   messages: {},
@@ -31,6 +37,8 @@ export const useChatStore = create<ChatState>((set) => ({
   hasMore: {},
   isLoadingFirstPage: {},
   isLoadingMore: {},
+  isChatsLoading: true,
+  hasFetchedChats: false,
 
   setChats: (chats) => set({ chats }),
   setActiveChatId: (activeChatId) => set({ activeChatId }),
@@ -48,7 +56,7 @@ export const useChatStore = create<ChatState>((set) => ({
       
       // Compute unread count increment if chat is NOT active
       const isActive = state.activeChatId === chatId;
-      const isFromMe = message.senderId === require('./useAuthStore').useAuthStore.getState().user?.id;
+      const isFromMe = message.senderId === useAuthStore.getState().user?.id;
       
       return {
         messages: {
@@ -98,15 +106,37 @@ export const useChatStore = create<ChatState>((set) => ({
         },
       };
     }),
+  deleteMessage: async (chatId, messageId, forEveryone) => {
+    try {
+      await api.delete(`/messages/delete/${messageId}`, { data: { forEveryone } });
+      
+      // Remove locally
+      get().removeMessageLocally(chatId, messageId);
+      get().fetchChats(); // Refresh last message in sidebar
+    } catch (error) {
+      console.error('Failed to delete message', error);
+      throw error;
+    }
+  },
+  removeMessageLocally: (chatId, messageId) => {
+    set((state) => {
+      const chatMessages = state.messages[chatId];
+      if (!chatMessages) return state;
+
+      const newMessages = chatMessages.filter(m => m.id !== messageId);
+      return {
+        messages: { ...state.messages, [chatId]: newMessages }
+      };
+    });
+  },
   markMessagesAsSeen: async (chatId) => {
     try {
-      const { default: api } = await import('@/lib/api');
       await api.post('/messages/seen', { conversationId: chatId });
       
       // Update local state: mark all messages from others as seen
       set((state) => {
         const chatMessages = state.messages[chatId] || [];
-        const currentUserId = require('./useAuthStore').useAuthStore.getState().user?.id;
+        const currentUserId = useAuthStore.getState().user?.id;
         
         const updatedMessages = chatMessages.map((m) =>
           m.senderId !== currentUserId ? { ...m, status: 'seen' as const } : m
@@ -127,8 +157,10 @@ export const useChatStore = create<ChatState>((set) => ({
     }
   },
   fetchChats: async () => {
+    if (!get().hasFetchedChats) {
+      set({ isChatsLoading: true });
+    }
     try {
-      const { default: api } = await import('@/lib/api');
       const response = await api.get('/conversations');
       const rawChats = response.data.data || [];
       
@@ -172,20 +204,24 @@ export const useChatStore = create<ChatState>((set) => ({
         };
       });
 
-      // Sort chats by updatedAt desc
       formattedChats.sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
-      set({ chats: formattedChats });
+      set({ chats: formattedChats, isChatsLoading: false, hasFetchedChats: true });
     } catch (error) {
       console.error('Failed to fetch chats', error);
+      set({ isChatsLoading: false, hasFetchedChats: true });
     }
   },
   fetchMessages: async (chatId) => {
+    if (get().messages[chatId] && get().messages[chatId].length > 0) {
+      return;
+    }
+
     set((state) => ({
       isLoadingFirstPage: { ...state.isLoadingFirstPage, [chatId]: true }
     }));
+    
     try {
-      const { default: api } = await import('@/lib/api');
       const response = await api.get(`/messages/${chatId}`);
       const rawMessages = response.data.data?.messages || [];
       const nextCursor = response.data.data?.nextCursor || null;
@@ -224,24 +260,19 @@ export const useChatStore = create<ChatState>((set) => ({
     }
   },
   loadMoreMessages: async (chatId) => {
-    const state = useChatStore.getState();
-    const cursor = state.cursors[chatId];
-    const hasMore = state.hasMore[chatId];
-    const isLoadingMore = state.isLoadingMore[chatId];
-
-    if (!cursor || !hasMore || isLoadingMore) return;
+    const { cursors, isLoadingMore, hasMore } = get();
+    if (isLoadingMore[chatId] || !hasMore[chatId] || !cursors[chatId]) return;
 
     set((state) => ({
       isLoadingMore: { ...state.isLoadingMore, [chatId]: true }
     }));
 
     try {
-      const { default: api } = await import('@/lib/api');
+      const cursor = cursors[chatId];
       const response = await api.get(`/messages/${chatId}?cursor=${cursor}`);
       const rawMessages = response.data.data?.messages || [];
       const nextCursor = response.data.data?.nextCursor || null;
 
-      // Filter out boundaries if already included
       const filteredRaw = rawMessages.filter((m: any) => m.id !== cursor);
 
       const mappedMessages = filteredRaw.map((msg: any) => {

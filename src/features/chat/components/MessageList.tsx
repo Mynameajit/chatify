@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -17,19 +17,33 @@ import {
   ZoomIn, 
   ZoomOut, 
   Play,
-  Download
+  Download,
+  MoreVertical,
+  Trash2,
+  Phone,
+  PhoneOff,
+  Video
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function MessageList({ chatId }: { chatId: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const { user } = useAuthStore();
   const { 
     messages, 
     fetchMessages, 
-    loadMoreMessages, 
     isLoadingFirstPage, 
     isLoadingMore, 
-    hasMore 
+    hasMore, 
+    loadMoreMessages,
+    deleteMessage,
+    removeMessageLocally
   } = useChatStore();
 
   const chatMessages = messages[chatId] || [];
@@ -114,22 +128,33 @@ export function MessageList({ chatId }: { chatId: string }) {
   }, [chatId, fetchMessages]);
 
   const prevChatIdRef = useRef(chatId);
-  const prevMessagesLengthRef = useRef(chatMessages.length);
+  const prevLastMessageIdRef = useRef<string | null>(null);
   const prevLoadingFirstPageRef = useRef(!!isLoadingFirstPage[chatId]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
 
     const isChatChanged = prevChatIdRef.current !== chatId;
-    const isNewMessageAdded = chatMessages.length > prevMessagesLengthRef.current;
+    const currentLastMessageId = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].id : null;
+    const isNewMessageAdded = currentLastMessageId !== prevLastMessageIdRef.current;
     
     const wasLoadingFirstPage = prevLoadingFirstPageRef.current;
     const finishedLoadingFirstPage = wasLoadingFirstPage && !isLoadingFirstPage[chatId];
 
     if (isChatChanged || finishedLoadingFirstPage) {
       // Chat changed or finished loading first page: scroll to bottom instantly!
-      container.scrollTop = container.scrollHeight;
+      // We do this multiple times to account for images/elements calculating layout
+      const scrollToBottom = () => {
+        if (container) container.scrollTop = container.scrollHeight;
+        bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+      };
+      
+      scrollToBottom(); // Instant synchronous scroll before paint
+      setTimeout(scrollToBottom, 10);
+      setTimeout(scrollToBottom, 150);
+      setTimeout(scrollToBottom, 500);
+      
       prevChatIdRef.current = chatId;
     } else if (isNewMessageAdded) {
       const lastMessage = chatMessages[chatMessages.length - 1];
@@ -139,11 +164,13 @@ export function MessageList({ chatId }: { chatId: string }) {
       const isNearBottom = container.scrollHeight - container.clientHeight - container.scrollTop < 200;
 
       if (isMe || isNearBottom) {
-        container.scrollTop = container.scrollHeight;
+        setTimeout(() => {
+          bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
       }
     }
 
-    prevMessagesLengthRef.current = chatMessages.length;
+    prevLastMessageIdRef.current = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].id : null;
     prevLoadingFirstPageRef.current = !!isLoadingFirstPage[chatId];
   }, [chatMessages, chatId, isLoadingFirstPage[chatId], user?.id]);
 
@@ -230,6 +257,41 @@ export function MessageList({ chatId }: { chatId: string }) {
               </div>
             )}
 
+            {msg.type === 'SYSTEM' || (msg as any).type === 'SYSTEM' ? (
+              <div className="flex justify-center my-4 w-full select-none">
+                {(() => {
+                  try {
+                    const data = JSON.parse(msg.content);
+                    if (data.type === 'CALL') {
+                      const formatDuration = (secs: number) => {
+                         const m = Math.floor(secs / 60);
+                         const s = secs % 60;
+                         return `${m}:${s.toString().padStart(2, '0')}`;
+                      };
+                      const isIncoming = !isMe;
+                      const CallIcon = data.isVideo ? Video : Phone;
+                      return (
+                        <div className="flex items-center gap-3 bg-white dark:bg-zinc-800/80 px-4 py-2 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700/50">
+                          <div className={cn("p-2 rounded-full", data.status === 'MISSED' || data.status === 'REJECTED' ? 'bg-red-100 text-red-500 dark:bg-red-500/20' : 'bg-green-100 text-green-600 dark:bg-green-500/20')}>
+                            {data.status === 'MISSED' || data.status === 'REJECTED' ? <PhoneOff className="w-4 h-4" /> : <CallIcon className="w-4 h-4" />}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                              {data.status === 'MISSED' || data.status === 'REJECTED' ? (isIncoming ? 'Missed Call' : 'Call Unanswered') : (isIncoming ? 'Incoming Call' : 'Outgoing Call')}
+                            </span>
+                            <span className="text-[10px] text-zinc-500 font-medium tracking-wide mt-0.5">
+                              {data.status === 'ANSWERED' ? `${formatDuration(data.duration)}` : data.status} • {format(new Date(msg.timestamp), 'HH:mm')}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    }
+                  } catch (e) {
+                     return <span className="text-xs font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800/50 px-3 py-1 rounded-full">{msg.content}</span>
+                  }
+                })()}
+              </div>
+            ) : (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -248,6 +310,44 @@ export function MessageList({ chatId }: { chatId: string }) {
                     ? "bg-primary text-primary-foreground rounded-br-sm"
                     : "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-100 dark:border-zinc-800/60 rounded-bl-sm"
                 )}>
+                  {/* Delete Menu */}
+                  <div className={cn(
+                    "absolute top-2 transition-opacity opacity-0 group-hover:opacity-100 z-10",
+                    isMe ? "-left-10" : "-right-10"
+                  )}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1 rounded-full bg-white dark:bg-zinc-800 shadow-sm border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-500">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align={isMe ? "end" : "start"} className="w-48">
+                        <DropdownMenuItem 
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer flex items-center"
+                          onClick={() => removeMessageLocally(chatId, msg.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete for me
+                        </DropdownMenuItem>
+                        {isMe && (
+                          <DropdownMenuItem 
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer flex items-center"
+                            onClick={async () => {
+                              try {
+                                await deleteMessage(chatId, msg.id, true);
+                              } catch (err) {
+                                console.error(err);
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete for everyone
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
                   {/* Attachments Section */}
                   {msg.attachments?.map((att) => {
                     const mediaIndex = allMedia.findIndex((m) => m.id === att.id);
@@ -258,6 +358,12 @@ export function MessageList({ chatId }: { chatId: string }) {
                             src={att.url}
                             alt={att.name}
                             onClick={() => mediaIndex !== -1 && setActiveMediaIndex(mediaIndex)}
+                            onLoad={() => {
+                              // If it's the last few messages, scroll to bottom on load
+                              if (index >= chatMessages.length - 3) {
+                                bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+                              }
+                            }}
                             className="w-full h-full object-cover max-h-[220px]"
                           />
                         )}
@@ -309,9 +415,13 @@ export function MessageList({ chatId }: { chatId: string }) {
                 </div>
               </div>
             </motion.div>
+            )}
           </div>
         );
       })}
+      
+      {/* Invisible element to scroll to */}
+      <div ref={bottomRef} className="h-px w-full" />
 
       {/* Lightbox Pop-up Modal */}
       <AnimatePresence>

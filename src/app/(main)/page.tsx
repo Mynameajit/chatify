@@ -4,7 +4,6 @@ import { useChatStore } from "@/store/useChatStore";
 import { ChatWindow } from "@/features/chat/components/ChatWindow";
 import { RightSidebar } from "@/features/profile/components/RightSidebar";
 import { LeftSidebar } from "@/features/chat/components/LeftSidebar";
-import { MessageSquareDashed } from "lucide-react";
 import { useUIStore } from "@/store/useUIStore";
 import { cn } from "@/lib/utils";
 
@@ -31,8 +30,8 @@ export default function MainPage() {
           <ChatWindow chatId={activeChatId} />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center bg-zinc-50/50 dark:bg-zinc-950/50">
-            <div className="w-24 h-24 rounded-3xl bg-primary/10 dark:bg-primary/10 flex items-center justify-center mb-6">
-              <MessageSquareDashed className="w-12 h-12 text-primary" />
+            <div className="w-24 h-24 rounded-3xl bg-primary/10 dark:bg-primary/10 flex items-center justify-center mb-6 overflow-hidden shadow-sm">
+              <img src="/logo.png" alt="Chatify" className="w-16 h-16 object-contain" />
             </div>
             <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
               Welcome to Chatify

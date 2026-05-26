@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   title: "Chatify | Real-time Chat App",
   description: "A modern, responsive real-time chat application.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

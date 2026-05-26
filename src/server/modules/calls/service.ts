@@ -34,6 +34,45 @@ export class CallService {
       },
     });
 
+    // Create system message for this call in the conversation
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        isGroup: false,
+        members: {
+          some: { userId: call.callerId }
+        }
+      }
+    });
+
+    // Since we can't easily query exact two members in many-to-many with prisma findFirst natively easily without advanced filters,
+    // let's fetch conversations of callerId and filter in memory, or use a better query.
+    // Actually, simpler query:
+    const conversations = await prisma.conversation.findMany({
+      where: { isGroup: false },
+      include: { members: true }
+    });
+
+    const targetConv = conversations.find(c => 
+      c.members.some(m => m.userId === call.callerId) && 
+      c.members.some(m => m.userId === call.receiverId)
+    );
+
+    if (targetConv) {
+      await prisma.message.create({
+        data: {
+          conversationId: targetConv.id,
+          senderId: call.callerId, // Record it under the caller
+          content: JSON.stringify({ 
+            type: 'CALL', 
+            status: data.status, 
+            duration: data.duration || 0, 
+            isVideo: call.isVideo 
+          }),
+          type: 'SYSTEM',
+        }
+      });
+    }
+
     return endedCall;
   }
 }

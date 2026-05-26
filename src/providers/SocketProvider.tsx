@@ -121,6 +121,18 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       useChatStore.getState().fetchChats();
     });
 
+    socketInstance.on('user:updated', (data: any) => {
+      console.log('User profile updated:', data);
+      useChatStore.getState().fetchChats();
+    });
+
+    socketInstance.on('message:deleted', (data: any) => {
+      console.log('Message deleted:', data);
+      useChatStore.getState().removeMessageLocally(data.chatId, data.messageId);
+      // Also fetch chats again to ensure the last message preview updates if it was the last message
+      useChatStore.getState().fetchChats();
+    });
+
     setSocket(socketInstance);
 
     return () => {

@@ -250,11 +250,12 @@ export function CallModal() {
   };
 
   const leaveCall = async () => {
+    const finalDuration = duration;
     if (caller) {
       socket?.emit('call:end', { to: caller.id, callId: caller.callId });
     }
     if (caller?.callId) {
-      await api.post('/calls/end', { callId: caller.callId, status: 'ANSWERED' }).catch(() => {});
+      await api.post('/calls/end', { callId: caller.callId, status: 'ANSWERED', duration: finalDuration }).catch(() => {});
     }
     endCallCleanup();
   };
@@ -263,7 +264,7 @@ export function CallModal() {
     if (caller) {
       socket?.emit('call:reject', { callerId: caller.id, callId: caller.callId });
       socket?.emit('call:end', { to: caller.id, callId: caller.callId });
-      await api.post('/calls/end', { callId: caller.callId, status: 'REJECTED' }).catch(() => {});
+      await api.post('/calls/end', { callId: caller.callId, status: 'REJECTED', duration: 0 }).catch(() => {});
     }
     endCallCleanup();
   };

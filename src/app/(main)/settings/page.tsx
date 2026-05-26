@@ -5,14 +5,44 @@ import { ArrowLeft, Palette, Type, Maximize, Settings, Shield, Bell } from "luci
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useUIStore } from "@/store/useUIStore";
+import { toast } from "sonner";
+import api from "@/lib/api";
 
 export default function SettingsPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { themeColor, setThemeColor, themeRadius, setThemeRadius, themeFont, setThemeFont } = useUIStore();
   const [activeTab, setActiveTab] = useState("general");
+
+  // Change Password State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword) {
+      toast.error("Please fill in both password fields.");
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      const res = await api.post("/users/change-password", { currentPassword, newPassword });
+      if (res.data.success) {
+        toast.success("Password changed successfully!");
+        setCurrentPassword("");
+        setNewPassword("");
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to change password.");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
 
   const colors = [
     { name: "Zinc", value: "zinc", class: "bg-zinc-900 dark:bg-zinc-100" },
@@ -188,6 +218,42 @@ export default function SettingsPage() {
                     <p className="text-sm text-zinc-500 mt-1">Only friends can see your full details.</p>
                   </div>
                   <Button variant="outline">Toggle</Button>
+                </div>
+                
+                <div className="p-6 border border-zinc-200 dark:border-zinc-800 rounded-xl space-y-6">
+                  <div>
+                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Change Password</h3>
+                    <p className="text-sm text-zinc-500 mt-1">Update your account password securely. You must know your current password.</p>
+                  </div>
+                  <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Current Password</Label>
+                      <Input 
+                        type="password" 
+                        placeholder="••••••••" 
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="rounded-xl h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">New Password</Label>
+                      <Input 
+                        type="password" 
+                        placeholder="••••••••" 
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="rounded-xl h-11"
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      disabled={isChangingPassword || !currentPassword || !newPassword}
+                      className="rounded-xl h-11 font-semibold px-6"
+                    >
+                      {isChangingPassword ? "Updating..." : "Update Password"}
+                    </Button>
+                  </form>
                 </div>
               </div>
             </TabsContent>

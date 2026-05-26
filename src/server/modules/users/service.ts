@@ -1,4 +1,5 @@
 import prisma from '@/server/db';
+import bcrypt from 'bcryptjs';
 import { UpdateProfileInput } from './validation';
 
 export class UserService {
@@ -64,6 +65,31 @@ export class UserService {
         bio: true,
       },
     });
+
+    // Notify all friends about the update
+    try {
+      const friendships = await prisma.friendship.findMany({
+        where: {
+          OR: [{ user1Id: userId }, { user2Id: userId }],
+        },
+      });
+
+      const { getIO } = await import('@/server/socket/index');
+      const io = getIO();
+      if (io) {
+        friendships.forEach(f => {
+          const friendId = f.user1Id === userId ? f.user2Id : f.user1Id;
+          io.to(`user:${friendId}`).emit('user:updated', {
+            userId: user.id,
+            name: user.name,
+            avatar: user.profilePhoto,
+            bio: user.bio
+          });
+        });
+      }
+    } catch (err) {
+      console.error('Failed to emit user:updated:', err);
+    }
 
     return user;
   }
@@ -185,6 +211,31 @@ export class UserService {
     await prisma.blockedUser.deleteMany({
       where: { blockerId, blockedId }
     });
+    return { success: true };
+  }
+
+  static async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isValidPassword) {
+      throw new Error('Incorrect current password');
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+    });
+
     return { success: true };
   }
 }

@@ -1,6 +1,6 @@
 import { Context } from 'hono';
 import { UserService } from './service';
-import { updateProfileSchema } from './validation';
+import { updateProfileSchema, changePasswordSchema } from './validation';
 import { ZodError } from 'zod';
 
 export class UserController {
@@ -73,6 +73,22 @@ export class UserController {
       const result = await UserService.unblockUser(currentUserId, userId);
       return c.json({ success: true, data: result });
     } catch (error: any) {
+      return c.json({ success: false, message: error.message }, 400);
+    }
+  }
+
+  static async changePassword(c: Context) {
+    try {
+      const currentUserId = c.get('userId');
+      const body = await c.req.json();
+      const data = changePasswordSchema.parse(body);
+
+      const result = await UserService.changePassword(currentUserId, data.currentPassword, data.newPassword);
+      return c.json({ success: true, data: result });
+    } catch (error: any) {
+      if (error instanceof ZodError) {
+        return c.json({ success: false, message: error.errors[0].message }, 400);
+      }
       return c.json({ success: false, message: error.message }, 400);
     }
   }
