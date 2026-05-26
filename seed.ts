@@ -1,34 +1,42 @@
-const firstNames = ['Ajit', 'Amit', 'Abhishek', 'Sagar', 'Vikram', 'Ramesh', 'Shivji', 'Lalan', 'Karan', 'Rajiv', 'Rohan', 'Rahul', 'Sunil', 'Pankaj', 'Suresh', 'Manish', 'Deepak', 'Gaurav', 'Nitin', 'Vikas'];
-const lastNames = ['Kumar', 'Singh', 'Sharma', 'Verma', 'Gupta', 'Mishra', 'Yadav', 'Patel', 'Pandey', 'Tiwari'];
+import prisma from './src/server/db/index.js';
+import bcrypt from 'bcryptjs';
+
+const names = [
+  'Ajit', 'Amit', 'Abhishek', 'Sagar', 'Vikram', 'Ramesh', 'Shivji', 'Lalan', 
+  'Karan', 'Rajiv', 'Rohan', 'Rahul', 'Sunil', 'Pankaj', 'Suresh', 'Manish', 
+  'Deepak', 'Gaurav', 'Nitin', 'Vikas', 'Ankit', 'Sonu', 'Monu', 'Aman', 
+  'Arjun', 'Suraj', 'Prince', 'Ritik', 'Aditya', 'Mohit'
+];
 
 async function main() {
-  console.log('Generating 50 users via API...');
+  console.log('Generating 30 users directly into database...');
+  const hashedPassword = await bcrypt.hash('123456', 10);
 
-  for (let i = 1; i <= 50; i++) {
-    const fName = firstNames[Math.floor(Math.random() * firstNames.length)];
-    const lName = lastNames[Math.floor(Math.random() * lastNames.length)];
-    const name = `${fName} ${lName}`;
-    const email = `${fName.toLowerCase()}${i}@gmail.com`;
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i];
+    const email = `${name.toLowerCase()}@gmail.com`;
 
     try {
-      const res = await fetch('http://localhost:3000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, password: '123456' })
+      const user = await prisma.user.upsert({
+        where: { email },
+        update: {},
+        create: {
+          name,
+          email,
+          password: hashedPassword,
+        },
       });
-      
-      const data = await res.json();
-      if (res.ok) {
-        console.log(`Created user ${i}/50: ${name} (${email})`);
-      } else {
-        console.error(`Failed to create ${email}`, data);
-      }
-    } catch (e) {
-      console.error(`Failed to create ${email}`, e);
+      console.log(`Created/Verified: ${name} (${email})`);
+    } catch (error) {
+      console.error(`Error creating ${email}`, error);
     }
   }
 
-  console.log('Finished creating 50 users.');
+  console.log('Finished creating 30 users.');
 }
 
-main().catch(console.error);
+main()
+  .catch(console.error)
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

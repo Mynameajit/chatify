@@ -85,28 +85,30 @@ export function LeftSidebar() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Register service worker for push notifications & installability
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").then(
-        (reg) => console.log("ServiceWorker registered successfully:", reg.scope),
-        (err) => console.error("ServiceWorker registration failed:", err)
-      );
-    }
+    // Check if the prompt was already captured by the global script in layout.tsx
+    const checkInstallable = () => {
+      const globalPrompt = (window as any).deferredPwaPrompt;
+      if (globalPrompt) {
+        setDeferredPrompt(globalPrompt);
+        setIsInstallable(true);
+      }
+    };
+
+    checkInstallable();
+    window.addEventListener("pwa-installable", checkInstallable);
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setIsInstallable(true);
+      (window as any).deferredPwaPrompt = e;
     };
-
+    
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setIsInstallable(false);
-    }
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("pwa-installable", checkInstallable);
     };
   }, []);
 
